@@ -1,51 +1,157 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-    <head>
-        <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-        <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-        <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
-    </head>
+<head>
+    <meta charset="utf-8">
+    <title>AR Food Carousel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- A-Frame Library -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <!-- AR.js Library for A-Frame -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
-    <body style="margin: 0; overflow: hidden;">
-        <a-scene
-            vr-mode-ui="enabled: false;"
-            loading-screen="enabled: false;"
-            renderer="logarithmicDepthBuffer: true;"
-            arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-            id="scene"
-            embedded
-            gesture-detector
-        >
-            <a-assets>
-                <a-asset-item
-                    id="animated-asset"
-                    src="assets/asset.gltf"
-                ></a-asset-item>
-            </a-assets>
+    <style>
+        .prompt {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; font-family: sans-serif; font-size: 1.5em; z-index: 10000;
+        }
+        #ar-prompt {
+            display: none; background-color: transparent;
+            align-items: flex-end; padding-bottom: 15vh;
+        }
+    </style>
+</head>
+<body style="margin : 0px; overflow: hidden;">
+    <div id="loader" class="prompt">
+        <p>Loading 3D Models...</p>
+    </div>
+    <div id="ar-prompt" class="prompt">
+        <p>Point your camera at the Hiro marker.</p>
+    </div>
 
-            <a-marker
-                id="animated-marker"
-                type="pattern"
-                preset="custom"
-                url="assets/marker.patt"
-                raycaster="objects: .clickable"
-                emitevents="true"
-                cursor="fuse: false; rayOrigin: mouse;"
-                id="markerA"
-            >
-                <a-entity
-                    id="bowser-model"
-                    scale="0.009434927467267509 0.009434927467267509 0.009434927467267509"
-                    animation-mixer="loop: repeat"
-                    gltf-model="#animated-asset"
-                    class="clickable"
-                    gesture-handler
-                ></a-entity>
-            </a-marker>
+    <!-- The AR Scene using AR.js -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
+        
+        <!-- =========================================================== -->
+        <!-- SECTION 1: ADD YOUR NEW 3D MODEL ASSETS HERE                -->
+        <!-- =========================================================== -->
+        <a-assets timeout="60000">
+            <!-- Japanese Food Models -->
+            <!-- NOTE: The 'src' paths below have been updated to include the 'assets/' folder -->
+            <a-asset-item id="osechi-model" src="assets/osechi/source/polycam_osechi_adjusted.gltf" crossorigin="anonymous"></a-asset-item>
+            <a-asset-item id="salmon-sushi-model" src="assets/salmon_nigiri_sushi/scene.gltf" crossorigin="anonymous"></a-asset-item>
 
-            <a-entity camera></a-entity>
-        </a-scene>
-    </body>
+            <!-- Example: To add an "Indian" menu, you would add your assets like this: -->
+            <!-- <a-asset-item id="biryani-model" src="assets/path/to/your/biryani/model.gltf"></a-asset-item> -->
+            <!-- <a-asset-item id="samosa-model" src="assets/path/to/your/samosa/model.gltf"></a-asset-item> -->
+
+        </a-assets>
+
+        <!-- Lighting for the scene -->
+        <a-light type="ambient" color="#FFF" intensity="0.7"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.5" position="-1 2 1"></a-light>
+
+        <!-- The marker that AR.js will look for -->
+        <a-marker preset="hiro">
+            <!-- This is the container for all your 3D models -->
+            <a-entity id="menu-container" rotation="-90 0 0">
+                <!-- A simple cylinder to act as a white plate (approx. 12 inches diameter) -->
+                <a-cylinder color="#FAFAFA" height="0.02" radius="0.15"></a-cylinder>
+
+                <!-- Wrapper for food models, positioned slightly above the plate. -->
+                <!-- ALL models inside this wrapper will have the SAME scale. -->
+                <a-entity id="food-items-wrapper" position="0 0.01 0" scale="0.1 0.1 0.1">
+                    <!-- Japanese -->
+                    <!-- NOTE: The individual 'scale' attribute has been removed from the models below -->
+                    <a-gltf-model id="osechi" class="food-item" src="#osechi-model" visible="false"></a-gltf-model>
+                    <a-gltf-model id="salmon-sushi" class="food-item" src="#salmon-sushi-model" visible="false"></a-gltf-model>
+                    
+                    <!-- Example: You would add new models here WITHOUT a scale attribute -->
+                    <!-- <a-gltf-model id="biryani" class="food-item" src="#biryani-model" visible="false"></a-gltf-model> -->
+                    <!-- <a-gltf-model id="samosa" class="food-item" src="#samosa-model" visible="false"></a-gltf-model> -->
+
+                </a-entity>
+            </a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loader = document.getElementById('loader');
+            const arPrompt = document.getElementById('ar-prompt');
+            const assets = document.querySelector('a-assets');
+            
+            assets.addEventListener('loaded', () => {
+                loader.style.display = 'none';
+                arPrompt.style.display = 'flex';
+            });
+
+            // NEW: Add error handling for each asset to find the source of the "Script error"
+            document.querySelectorAll('a-asset-item').forEach(asset => {
+                asset.addEventListener('error', (e) => {
+                    console.error(`---!!! CRITICAL ASSET ERROR !!!---`, e);
+                    // Display a specific error message on the screen
+                    loader.innerHTML = `Error loading: <b>${e.target.id}</b>.<br>Check file path and console for details.`;
+                });
+            });
+            
+            // ===========================================================
+            // SECTION 2: DEFINE YOUR MENU CATEGORIES HERE                 
+            // ===========================================================
+            const menuData = {
+                // This 'japanese' key matches '?cuisine=japanese' in the URL
+                'japanese': ['osechi', 'salmon-sushi'],
+
+                // Example: To add the Indian menu, you would create a new entry like this:
+                // 'indian': ['biryani', 'samosa'],
+
+                // A fallback menu in case the URL parameter is missing
+                'default': ['osechi', 'salmon-sushi']
+            };
+
+            // This part of the code reads the URL and loads the correct menu automatically
+            const urlParams = new URLSearchParams(window.location.search);
+            const cuisine = urlParams.get('cuisine') || 'default';
+            const activeMenuIds = menuData[cuisine];
+            let currentFoodIndex = 0;
+
+            function updateFoodDisplay() {
+                document.querySelectorAll('.food-item').forEach(item => item.setAttribute('visible', 'false'));
+                const activeModelId = activeMenuIds[currentFoodIndex];
+                const activeModel = document.getElementById(activeModelId);
+                if (activeModel) activeModel.setAttribute('visible', 'true');
+            }
+
+            const marker = document.querySelector('a-marker');
+            marker.addEventListener('markerFound', () => {
+                arPrompt.style.display = 'none';
+                updateFoodDisplay();
+            });
+
+            marker.addEventListener('markerLost', () => {
+                arPrompt.style.display = 'flex';
+            });
+
+            // Swipe Logic
+            let touchStartX = 0;
+            document.body.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+            document.body.addEventListener('touchend', e => {
+                let touchEndX = e.changedTouches[0].clientX;
+                if (Math.abs(touchStartX - touchEndX) < 50) return;
+
+                if (touchEndX < touchStartX) {
+                    currentFoodIndex = (currentFoodIndex + 1) % activeMenuIds.length;
+                } else {
+                    currentFoodIndex = (currentFoodIndex - 1 + activeMenuIds.length) % activeMenuIds.length;
+                }
+                updateFoodDisplay();
+            });
+        });
+    </script>
+</body>
 </html>
+
+
